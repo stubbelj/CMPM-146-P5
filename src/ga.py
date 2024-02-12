@@ -261,6 +261,9 @@ class Individual_DE(object):
 
     def generate_children(self, other):
         # STUDENT How does this work?  Explain it in your writeup.
+        """ splits self.genome and other.genome in half at a random
+        index. then, creates new genomes out of (first half of a + second half of b)
+        and (first half of b + second half of a)"""
         pa = random.randint(0, len(self.genome) - 1)
         pb = random.randint(0, len(other.genome) - 1)
         a_part = self.genome[:pa] if len(self.genome) > 0 else []
@@ -347,6 +350,52 @@ def generate_successors(population):
     results = []
     # STUDENT Design and implement this
     # Hint: Call generate_children() on some individuals and fill up results.
+    """ using tournament selection, to add small amounts of randomness 
+    https://en.wikipedia.org/wiki/Tournament_selection
+    using elitist selection to ensure consistency
+    https://en.wikipedia.org/wiki/Selection_(genetic_algorithm)#Elitist_Selection
+    our algorithm selects several of the highest fitness individuals to use, and 
+    then selects the remaining individuals with tournament selection. this strategy
+    is intended to allow for low selection pressure without sacrificing ideal individuals,
+    creating a successor pool that includes moderate to high fitness individuals"""
+    # % of population in each tournament
+    selection_weight =  0.9
+    # chance that a higher fitness individual "wins" matchups in tournaments
+    fitness_selection_weight = 0.95
+    # number of tournaments to select individuals for breeding. duplicates allowed
+    num_tournaments = 10
+    #number of elites to select
+    num_elites = 2
+    tournament_winners = []
+
+    #select elites
+    for x in range(0, num_elites):
+        tournament_winners.append(population.pop(population.max(key = Individual_DE._fitness)))
+    pop_limit = len(population)
+
+    #run tournaments
+    for x in range(0, num_tournaments):
+
+        tournament_entries = []
+        # randomly add (selection_weight)% of the population to tournament
+        while len(tournament_entries) < selection_weight * pop_limit:
+            tournament_entries.append(population.pop(random.range(0, len(population))))
+        
+        #sort by fitness
+        tournament_entries = tournament_entries.sort(key = Individual_DE._fitness)
+        #while selecting higher fitness individuals with probability p, find winner of tournament
+        for individual in tournament_entries:
+            if random.random() > random.range(0, fitness_selection_weight * 100) / 100:
+                tournament_winners.append(individual)
+                break
+    
+    #create successors from elites and tournament winners
+    while(len(tournament_winners) < pop_limit):
+        for individual in tournament_winners:
+            for other in tournament_winners:
+                if individual is not other:
+                    results.append(individual.generate_children(other))
+    
     return results
 
 
