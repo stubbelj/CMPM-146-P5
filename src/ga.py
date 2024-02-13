@@ -68,11 +68,52 @@ class Individual_Grid(object):
         # STUDENT also consider weighting the different tile types so it's not uniformly random
         # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
 
-        left = 1
-        right = width - 1
-        for y in range(height):
-            for x in range(left, right):
-                pass
+        #do not consider empty
+        if len(genome) == 0: return genome
+        #5% chance to mutate
+        if (random.random() > 0.95):
+            rand = random.random()
+            i = random.range(0, len(genome))
+            #don't modify flag, start
+            if i % width != 0 and i % width != 1:
+                #if cell is a pipe piece
+                if genome[i] == '|' or genome[i] == 'T':
+                    if rand < 0.5 and i % width != width - 1:
+                        #tile to the right of the pipe piece needs to be able to generate a pipe
+                        if i % width != width - 2:
+                            genome[i + 1] = genome[i]
+                            genome[i] = '-'
+                    elif i % width != 1:
+                        genome[i - 1] = genome[i]
+                        genome[i] = '-'
+                #if cell is an enemy
+                elif genome[i] == 'E':
+                    if rand < 0.5 and i % width != width - 1:
+                        genome[i + 1] = genome[i]
+                        genome[i] = '-'
+                    elif i % width != 1:
+                        genome[i - 1] = genome[i]
+                        genome[i] = '-'
+                #other cells, which can be moved up and down
+                else:
+                    if rand < 0.25 and i % width != width - 1:
+                        genome[i + 1] = genome[i]
+                        genome[i] = '-'
+                    elif rand < 0.5 and i % width != 1:
+                        genome[i - 1] = genome[i]
+                        genome[i] = '-'
+                    elif rand < 0.75 and i / width < 16:
+                        genome[i + width] = genome[i]
+                        genome[i] = '-'
+                    elif i > 16:
+                        genome[i - width] = genome[i]
+                        genome[i] = '-'
+
+        # left = 1
+        # right = width - 1
+        # for y in range(height):
+        #     for x in range(left, right):
+        #         pass
         return genome
 
     # Create zero or more children from self and other
