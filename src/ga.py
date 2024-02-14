@@ -131,7 +131,8 @@ class Individual_Grid(object):
                     new_genome[y][x] = other.genome[y][x]
 
         # do mutation; note we're returning a one-element tuple here
-        return (Individual_Grid(self.mutate(new_genome)),)
+        #return (Individual_Grid(self.mutate(new_genome)),)
+        return (Individual_Grid(new_genome),)
 
     # Turn the genome into a level string (easy for this genome)
     def to_level(self):
@@ -402,11 +403,11 @@ def generate_successors(population):
     is intended to allow for low selection pressure without sacrificing ideal individuals,
     creating a successor pool that includes moderate to high fitness individuals"""
     # % of population in each tournament
-    selection_weight =  0.9
+    selection_weight =  0.005
     # chance that a higher fitness individual "wins" matchups in tournaments
     fitness_selection_weight = 0.95
     # number of tournaments to select individuals for breeding. duplicates allowed
-    num_tournaments = 10
+    num_tournaments = 1
     #number of elites to select
     num_elites = 2
     tournament_winners = []
@@ -417,10 +418,9 @@ def generate_successors(population):
         tournament_winners.append(winner)
         population.remove(winner)
     pop_limit = len(population)
-    print("pop limit is:" + str(pop_limit))
 
-    #run tournaments
-    for x in range(0, num_tournaments):
+    #run tournaments until you have enough results
+    while len(tournament_winners) * (len(tournament_winners) - 1) / 2 < pop_limit:
 
         tournament_entries = []
         tournament_population = population[:]
@@ -429,26 +429,29 @@ def generate_successors(population):
             participant = random.choice(tournament_population)
             tournament_entries.append(participant)
             tournament_population.remove(participant)
-            print("length of tournament_entries: " + str(len(tournament_entries)))
-            print("length of tournament_population: " + str(len(tournament_population)))
         
         #sort by fitness
         tournament_entries.sort(key = lambda x: x._fitness)
         #while selecting higher fitness individuals with probability p, find winner of tournament
         for individual in tournament_entries:
-            if random.random() > random.randrange(0, (fitness_selection_weight * 100)) / 100:
+            if random.random() > random.randrange(0, int(fitness_selection_weight * 100)) / 100:
                 tournament_winners.append(individual)
                 break
     
     #create successors from elites and tournament winners
-    while(len(tournament_winners) < pop_limit):
-        for individual in tournament_winners:
-            for other in tournament_winners:
-                if individual is not other:
-                    results.append(individual.generate_children(other))
+    for individual in tournament_winners:
+        for other in tournament_winners:
+            if individual is not other:
+                results.append(*individual.generate_children(other))
     
+    if len(results) > pop_limit:
+        results = results[:pop_limit]
+    else:
+        print(len(results))
+        print(pop_limit)
+        print(len(tournament_winners))
+        raise NameError('pop size is too small')
     return results
-
 
 def ga():
     # STUDENT Feel free to play with this parameter
@@ -492,7 +495,7 @@ def ga():
                 # STUDENT Determine stopping condition
                 stop_condition = False
                 i += 1
-                if (i > 10):
+                if (i > 1):
                     stop_condition = True
                 if stop_condition:
                     break
@@ -511,7 +514,6 @@ def ga():
         except KeyboardInterrupt:
             pass
     return population
-
 
 if __name__ == "__main__":
     final_gen = sorted(ga(), key=Individual.fitness, reverse=True)
