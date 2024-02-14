@@ -70,15 +70,15 @@ class Individual_Grid(object):
 
         #do not consider empty
         if len(genome) == 0: return genome
-        #5% chance to mutate
-        if (random.random() > 0.95):
-            left = 1
-            right = width - 1
-            p = random.randint(1, width - 2)
-            rand = random.random()
-            for y in range(height):
-                for x in range(left, right):
-                    #pipes - make sure you don't generate on right edge of map
+
+        left = 1
+        right = width - 1
+        rand = random.random()
+        for y in range(height):
+            for x in range(left, right):
+                #1% chance to mutate
+                if (random.random() > 0.99):
+                    #move pipes - make sure you don't generate on right edge of map
                     if genome[y][x] == '|' or genome[y][x] == 'T':
                         if rand < 0.5 and x < right - 1:
                             genome[y][x + 1] = genome[y][x]
@@ -86,7 +86,7 @@ class Individual_Grid(object):
                         elif x > left:
                             genome[y][x - 1] = genome[y][x]
                             genome[y][x] = '-'
-                    #enemies
+                    #move enemies
                     elif genome[y][x] == 'E':
                         if rand < 0.5 and x < right:
                             genome[y][x + 1] = genome[y][x]
@@ -94,6 +94,10 @@ class Individual_Grid(object):
                         elif x > left:
                             genome[y][x - 1] = genome[y][x]
                             genome[y][x] = '-'
+                    #add a new element!!!!!
+                    elif genome[y][x] == '-':
+                        genome[y][x] = random.choice(['X', '?', 'M', 'B', 'o', 'E'])
+                    #move other elements
                     else:
                         if rand < 0.25 and x < right:
                             genome[y][x + 1] = genome[y][x]
@@ -131,8 +135,8 @@ class Individual_Grid(object):
                     new_genome[y][x] = other.genome[y][x]
 
         # do mutation; note we're returning a one-element tuple here
-        #return (Individual_Grid(self.mutate(new_genome)),)
-        return (Individual_Grid(new_genome),)
+        return (Individual_Grid(self.mutate(new_genome)),)
+        #return (Individual_Grid(new_genome),)
 
     # Turn the genome into a level string (easy for this genome)
     def to_level(self):
@@ -493,9 +497,10 @@ def ga():
                             f.write("".join(row) + "\n")
                 generation += 1
                 # STUDENT Determine stopping condition
+                # 10 generations
                 stop_condition = False
                 i += 1
-                if (i > 1):
+                if (i > 10):
                     stop_condition = True
                 if stop_condition:
                     break
