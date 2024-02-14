@@ -121,13 +121,20 @@ class Individual_Grid(object):
         new_genome = copy.deepcopy(self.genome)
         # Leaving first and last columns alone...
         # do crossover with other
+        
         left = 1
         right = width - 1
+        p = random.randint(1, width - 2)
         for y in range(height):
             for x in range(left, right):
                 # STUDENT Which one should you take?  Self, or other?  Why?
                 # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
-                pass
+                pos = y * width + x
+                if x < p: # take self
+                    new_genome[pos] = self.genome[pos]
+                else: # take other
+                    new_genome[pos] = other.genome[pos]
+
         # do mutation; note we're returning a one-element tuple here
         return (Individual_Grid(new_genome),)
 
