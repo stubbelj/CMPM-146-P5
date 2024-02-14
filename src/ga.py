@@ -72,48 +72,43 @@ class Individual_Grid(object):
         if len(genome) == 0: return genome
         #5% chance to mutate
         if (random.random() > 0.95):
+            left = 1
+            right = width - 1
+            p = random.randint(1, width - 2)
             rand = random.random()
-            i = random.range(0, len(genome))
-            #don't modify flag, start
-            if i % width != 0 and i % width != 1:
-                #if cell is a pipe piece
-                if genome[i] == '|' or genome[i] == 'T':
-                    if rand < 0.5 and i % width != width - 1:
-                        #tile to the right of the pipe piece needs to be able to generate a pipe
-                        if i % width != width - 2:
-                            genome[i + 1] = genome[i]
-                            genome[i] = '-'
-                    elif i % width != 1:
-                        genome[i - 1] = genome[i]
-                        genome[i] = '-'
-                #if cell is an enemy
-                elif genome[i] == 'E':
-                    if rand < 0.5 and i % width != width - 1:
-                        genome[i + 1] = genome[i]
-                        genome[i] = '-'
-                    elif i % width != 1:
-                        genome[i - 1] = genome[i]
-                        genome[i] = '-'
-                #other cells, which can be moved up and down
-                else:
-                    if rand < 0.25 and i % width != width - 1:
-                        genome[i + 1] = genome[i]
-                        genome[i] = '-'
-                    elif rand < 0.5 and i % width != 1:
-                        genome[i - 1] = genome[i]
-                        genome[i] = '-'
-                    elif rand < 0.75 and i / width < 16:
-                        genome[i + width] = genome[i]
-                        genome[i] = '-'
-                    elif i > 16:
-                        genome[i - width] = genome[i]
-                        genome[i] = '-'
+            for y in range(height):
+                for x in range(left, right):
+                    #pipes - make sure you don't generate on right edge of map
+                    if genome[y][x] == '|' or genome[y][x] == 'T':
+                        if rand < 0.5 and x < right - 1:
+                            genome[y][x + 1] = genome[y][x]
+                            genome[y][x] = '-'
+                        elif x > left:
+                            genome[y][x - 1] = genome[y][x]
+                            genome[y][x] = '-'
+                    #enemies
+                    elif genome[y][x] == 'E':
+                        if rand < 0.5 and x < right:
+                            genome[y][x + 1] = genome[y][x]
+                            genome[y][x] = '-'
+                        elif x > left:
+                            genome[y][x - 1] = genome[y][x]
+                            genome[y][x] = '-'
+                    else:
+                        if rand < 0.25 and x < right:
+                            genome[y][x + 1] = genome[y][x]
+                            genome[y][x] = '-'
+                        elif rand < 0.5 and x > left:
+                            genome[y][x - 1] = genome[y][x]
+                            genome[y][x] = '-'
+                        elif rand < 0.75 and y < height - 1:
+                            genome[y + 1][x] = genome[y][x]
+                            genome[y][x] = '-'
+                        elif y > 0:
+                            genome[y - 1][x] = genome[y][x]
+                            genome[y][x] = '-'
 
-        # left = 1
-        # right = width - 1
-        # for y in range(height):
-        #     for x in range(left, right):
-        #         pass
+
         return genome
 
     # Create zero or more children from self and other
@@ -131,12 +126,12 @@ class Individual_Grid(object):
                 # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
                 pos = y * width + x
                 if x < p: # take self
-                    new_genome[pos] = self.genome[pos]
+                    new_genome[y][x] = self.genome[y][x]
                 else: # take other
-                    new_genome[pos] = other.genome[pos]
+                    new_genome[y][x] = other.genome[y][x]
 
         # do mutation; note we're returning a one-element tuple here
-        return (Individual_Grid(new_genome),)
+        return (Individual_Grid(self.mutate(new_genome)),)
 
     # Turn the genome into a level string (easy for this genome)
     def to_level(self):
@@ -418,22 +413,30 @@ def generate_successors(population):
 
     #select elites
     for x in range(0, num_elites):
-        tournament_winners.append(population.pop(population.max(key = Individual_DE._fitness)))
+        winner = max(population, key = lambda x: x._fitness)
+        tournament_winners.append(winner)
+        population.remove(winner)
     pop_limit = len(population)
+    print("pop limit is:" + str(pop_limit))
 
     #run tournaments
     for x in range(0, num_tournaments):
 
         tournament_entries = []
+        tournament_population = population[:]
         # randomly add (selection_weight)% of the population to tournament
         while len(tournament_entries) < selection_weight * pop_limit:
-            tournament_entries.append(population.pop(random.range(0, len(population))))
+            participant = random.choice(tournament_population)
+            tournament_entries.append(participant)
+            tournament_population.remove(participant)
+            print("length of tournament_entries: " + str(len(tournament_entries)))
+            print("length of tournament_population: " + str(len(tournament_population)))
         
         #sort by fitness
-        tournament_entries = tournament_entries.sort(key = Individual_DE._fitness)
+        tournament_entries.sort(key = lambda x: x._fitness)
         #while selecting higher fitness individuals with probability p, find winner of tournament
         for individual in tournament_entries:
-            if random.random() > random.range(0, fitness_selection_weight * 100) / 100:
+            if random.random() > random.randrange(0, (fitness_selection_weight * 100)) / 100:
                 tournament_winners.append(individual)
                 break
     
@@ -471,6 +474,7 @@ def ga():
         start = time.time()
         now = start
         print("Use ctrl-c to terminate this loop manually.")
+        i = 0
         try:
             while True:
                 now = time.time()
@@ -487,6 +491,9 @@ def ga():
                 generation += 1
                 # STUDENT Determine stopping condition
                 stop_condition = False
+                i += 1
+                if (i > 10):
+                    stop_condition = True
                 if stop_condition:
                     break
                 # STUDENT Also consider using FI-2POP as in the Sorenson & Pasquier paper
