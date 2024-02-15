@@ -129,14 +129,13 @@ class Individual_Grid(object):
             for x in range(left, right):
                 # STUDENT Which one should you take?  Self, or other?  Why?
                 # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
-                pos = y * width + x
                 if x < p: # take self
-                    new_genome[pos] = self.genome[pos]
+                    new_genome[y][x] = self.genome[y][x]
                 else: # take other
-                    new_genome[pos] = other.genome[pos]
+                    new_genome[y][x] = other.genome[y][x]
 
         # do mutation; note we're returning a one-element tuple here
-        return (Individual_Grid(new_genome),)
+        return (Individual_Grid(self.mutate(new_genome)),)
 
     # Turn the genome into a level string (easy for this genome)
     def to_level(self):
