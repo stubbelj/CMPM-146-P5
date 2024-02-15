@@ -48,9 +48,9 @@ class Individual_Grid(object):
             meaningfulJumpVariance=0.5,
             negativeSpace=0.6,
             pathPercentage=0.5,
-            emptyPercentage=0.6,
+            emptyPercentage= -10.0,
             linearity=-0.5,
-            solvability=2.0
+            solvability=100.0
         )
         self._fitness = sum(map(lambda m: coefficients[m] * measurements[m],
                                 coefficients))
@@ -70,50 +70,62 @@ class Individual_Grid(object):
 
         #do not consider empty
         if len(genome) == 0: return genome
-        #5% chance to mutate
-        if (random.random() > 0.95):
-            rand = random.random()
-            i = random.range(0, len(genome))
-            #don't modify flag, start
-            if i % width != 0 and i % width != 1:
-                #if cell is a pipe piece
-                if genome[i] == '|' or genome[i] == 'T':
-                    if rand < 0.5 and i % width != width - 1:
-                        #tile to the right of the pipe piece needs to be able to generate a pipe
-                        if i % width != width - 2:
-                            genome[i + 1] = genome[i]
-                            genome[i] = '-'
-                    elif i % width != 1:
-                        genome[i - 1] = genome[i]
-                        genome[i] = '-'
-                #if cell is an enemy
-                elif genome[i] == 'E':
-                    if rand < 0.5 and i % width != width - 1:
-                        genome[i + 1] = genome[i]
-                        genome[i] = '-'
-                    elif i % width != 1:
-                        genome[i - 1] = genome[i]
-                        genome[i] = '-'
-                #other cells, which can be moved up and down
-                else:
-                    if rand < 0.25 and i % width != width - 1:
-                        genome[i + 1] = genome[i]
-                        genome[i] = '-'
-                    elif rand < 0.5 and i % width != 1:
-                        genome[i - 1] = genome[i]
-                        genome[i] = '-'
-                    elif rand < 0.75 and i / width < 16:
-                        genome[i + width] = genome[i]
-                        genome[i] = '-'
-                    elif i > 16:
-                        genome[i - width] = genome[i]
-                        genome[i] = '-'
 
-        # left = 1
-        # right = width - 1
-        # for y in range(height):
-        #     for x in range(left, right):
-        #         pass
+        #100% chance to mutate
+        if (random.random() > 1.1): return genome
+
+        left = 1
+        right = width - 1
+
+        num_mutates = 5
+
+        for x in range(num_mutates):
+            rand = random.random()
+            y = random.randrange(height)
+            x = random.randrange(left, right)
+
+            #add a new element!!!!!
+            if genome[y][x] == '-':
+                rand_type = random.random()
+                if rand_type < 0.4:
+                    genome[y][x] = 'B'
+                elif rand_type < 0.8:
+                    genome[y][x] = 'o'
+                elif rand_type < 0.9 :
+                    genome[y][x] = 'X'
+                else:
+                    genome[y][x] = random.choice(['?', 'M', 'E'])
+            #move pipes - make sure you don't generate on right edge of map
+            elif genome[y][x] == '|' or genome[y][x] == 'T':
+                if rand < 0.5 and x < right - 1:
+                    genome[y][x + 1] = genome[y][x]
+                    genome[y][x] = '-'
+                elif x > left:
+                    genome[y][x - 1] = genome[y][x]
+                    genome[y][x] = '-'
+            #move enemies
+            elif genome[y][x] == 'E':
+                if rand < 0.5 and x < right:
+                    genome[y][x + 1] = genome[y][x]
+                    genome[y][x] = '-'
+                elif x > left:
+                    genome[y][x - 1] = genome[y][x]
+                    genome[y][x] = '-'
+            #move other elements
+            else:
+                if rand < 0.25 and x < right:
+                    genome[y][x + 1] = genome[y][x]
+                    genome[y][x] = '-'
+                elif rand < 0.5 and x > left:
+                    genome[y][x - 1] = genome[y][x]
+                    genome[y][x] = '-'
+                elif rand < 0.75 and y < height - 1:
+                    genome[y + 1][x] = genome[y][x]
+                    genome[y][x] = '-'
+                elif y > 0:
+                    genome[y - 1][x] = genome[y][x]
+                    genome[y][x] = '-'
+        
         return genome
 
     # Create zero or more children from self and other
@@ -125,13 +137,21 @@ class Individual_Grid(object):
         left = 1
         right = width - 1
         p = random.randint(1, width - 2)
-        for y in range(height):
+        """for y in range(height):
             for x in range(left, right):
                 # STUDENT Which one should you take?  Self, or other?  Why?
                 # STUDENT consider putting more constraints on this to prevent pipes in the air, etc
                 if x < p: # take self
                     new_genome[y][x] = self.genome[y][x]
+                    second_genome[y][x] = other.genome[y][x]
                 else: # take other
+                    new_genome[y][x] = other.genome[y][x]
+                    second_genome[y][x] = self.genome[y][x]"""
+        
+        for x in range(left, right):
+            if random.random() > 0.50:
+                #swap columns
+                for y in range(height):
                     new_genome[y][x] = other.genome[y][x]
 
         # do mutation; note we're returning a one-element tuple here
@@ -308,6 +328,9 @@ class Individual_DE(object):
 
     def generate_children(self, other):
         # STUDENT How does this work?  Explain it in your writeup.
+        """ splits self.genome and other.genome in half at a random
+        index. then, creates new genomes out of (first half of a + second half of b)
+        and (first half of b + second half of a)"""
         pa = random.randint(0, len(self.genome) - 1)
         pb = random.randint(0, len(other.genome) - 1)
         a_part = self.genome[:pa] if len(self.genome) > 0 else []
@@ -403,45 +426,57 @@ def generate_successors(population):
     is intended to allow for low selection pressure without sacrificing ideal individuals,
     creating a successor pool that includes moderate to high fitness individuals"""
     # % of population in each tournament
-    selection_weight =  0.9
+    selection_weight =  0.005
     # chance that a higher fitness individual "wins" matchups in tournaments
     fitness_selection_weight = 0.95
     # number of tournaments to select individuals for breeding. duplicates allowed
-    num_tournaments = 10
+    num_tournaments = 1
     #number of elites to select
     num_elites = 2
     tournament_winners = []
 
     #select elites
     for x in range(0, num_elites):
-        tournament_winners.append(population.pop(population.max(key = Individual_DE._fitness)))
+        winner = max(population, key = lambda x: x._fitness)
+        tournament_winners.append(winner)
+        population.remove(winner)
     pop_limit = len(population)
 
-    #run tournaments
-    for x in range(0, num_tournaments):
+    #run tournaments until you have enough results
+    while len(tournament_winners) * (len(tournament_winners) - 1) / 2 < pop_limit:
 
         tournament_entries = []
+        tournament_population = population[:]
         # randomly add (selection_weight)% of the population to tournament
         while len(tournament_entries) < selection_weight * pop_limit:
-            tournament_entries.append(population.pop(random.range(0, len(population))))
+            participant = random.choice(tournament_population)
+            tournament_entries.append(participant)
+            tournament_population.remove(participant)
         
         #sort by fitness
-        tournament_entries = tournament_entries.sort(key = Individual_DE._fitness)
+        tournament_entries.sort(key = lambda x: x._fitness)
         #while selecting higher fitness individuals with probability p, find winner of tournament
         for individual in tournament_entries:
-            if random.random() > random.range(0, fitness_selection_weight * 100) / 100:
+            if random.random() > random.randrange(0, int(fitness_selection_weight * 100)) / 100:
                 tournament_winners.append(individual)
                 break
     
     #create successors from elites and tournament winners
-    while(len(tournament_winners) < pop_limit):
-        for individual in tournament_winners:
-            for other in tournament_winners:
-                if individual is not other:
-                    results.append(individual.generate_children(other))
+    for individual in tournament_winners:
+        for other in tournament_winners:
+            if individual is not other:
+                new_children = individual.generate_children(other)
+                for new_child in new_children:
+                    results.append(new_child)
     
+    if len(results) > pop_limit:
+        results = results[:pop_limit]
+    else:
+        print(len(results))
+        print(pop_limit)
+        print(len(tournament_winners))
+        raise NameError('pop size is too small')
     return results
-
 
 def ga():
     # STUDENT Feel free to play with this parameter
@@ -454,7 +489,7 @@ def ga():
     with mpool.Pool(processes=os.cpu_count()) as pool:
         init_time = time.time()
         # STUDENT (Optional) change population initialization
-        population = [Individual.random_individual() if random.random() < 0.9
+        population = [Individual.random_individual() if random.random() < 0
                       else Individual.empty_individual()
                       for _g in range(pop_limit)]
         # But leave this line alone; we have to reassign to population because we get a new population that has more cached stuff in it.
@@ -467,6 +502,7 @@ def ga():
         start = time.time()
         now = start
         print("Use ctrl-c to terminate this loop manually.")
+        i = 0
         try:
             while True:
                 now = time.time()
@@ -482,7 +518,11 @@ def ga():
                             f.write("".join(row) + "\n")
                 generation += 1
                 # STUDENT Determine stopping condition
+                # i generations
                 stop_condition = False
+                i += 1
+                if (i > 10):
+                    stop_condition = True
                 if stop_condition:
                     break
                 # STUDENT Also consider using FI-2POP as in the Sorenson & Pasquier paper
@@ -500,7 +540,6 @@ def ga():
         except KeyboardInterrupt:
             pass
     return population
-
 
 if __name__ == "__main__":
     final_gen = sorted(ga(), key=Individual.fitness, reverse=True)
